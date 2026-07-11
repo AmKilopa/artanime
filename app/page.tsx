@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 const COUNTDOWN_FROM = 5;
 const VIDEO_SRC =
-  "https://raw.githubusercontent.com/AmKilopa/artanime/main/public/videos/artanime.mp4";
+  "https://github.com/AmKilopa/artanime/raw/refs/heads/main/public/videos/artanime.mp4";
 
 type Stage = "ready" | "counting" | "playing" | "ended";
 
