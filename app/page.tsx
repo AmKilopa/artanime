@@ -144,13 +144,22 @@ export default function Home() {
     requestFullscreen();
 
     const resumeVideo = () => {
-      if (!video.ended) void video.play().catch(() => {});
+      if (!video.ended) {
+        video.muted = true;
+        void video.play().then(() => {
+          video.muted = false;
+          video.volume = 1;
+        }).catch(() => {});
+      }
     };
 
     video.currentTime = 0;
-    video.muted = false;
+    video.muted = true;
     video.volume = 1;
-    if (video.paused) void video.play().catch(() => {});
+    void video.play().then(() => {
+      video.muted = false;
+      video.volume = 1;
+    }).catch(() => {});
 
     video.addEventListener("pause", resumeVideo);
     return () => {
