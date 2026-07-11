@@ -196,8 +196,8 @@ export default function Home() {
 
     const video = videoRef.current;
     if (video) {
-      video.muted = false;
-      video.volume = 0;
+      video.muted = true;
+      video.volume = 1;
       video.currentTime = 0;
       void video.play().catch(() => {});
     }
