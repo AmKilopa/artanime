@@ -7,6 +7,17 @@ const VIDEO_SRC =
   "https://raw.githubusercontent.com/AmKilopa/artanime/main/public/videos/artanime.mp4";
 const VIDEO_PHRASES_SRC = "/phrases-video.txt";
 const AFTER_PHRASES_SRC = "/phrases-after.txt";
+const RED_PHRASES_AT_SECONDS = 195;
+const PHRASE_SLOTS = [
+  { x: 12, y: 12 },
+  { x: 86, y: 16 },
+  { x: 18, y: 34 },
+  { x: 82, y: 38 },
+  { x: 14, y: 58 },
+  { x: 88, y: 62 },
+  { x: 22, y: 82 },
+  { x: 78, y: 84 },
+];
 
 type Stage = "ready" | "counting" | "playing" | "ended";
 type FlyingPhrase = {
@@ -48,20 +59,17 @@ function pick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-function makePhrase(text: string): FlyingPhrase {
-  const x =
-    Math.random() > 0.5
-      ? 68 + Math.random() * 24
-      : 8 + Math.random() * 24;
+function makePhrase(text: string, slotIndex: number): FlyingPhrase {
+  const slot = PHRASE_SLOTS[slotIndex % PHRASE_SLOTS.length];
 
   return {
     id: Date.now() + Math.random(),
     text,
-    x,
-    y: 5 + Math.random() * 84,
-    size: 0.9 + Math.random() * 1.6,
-    rotate: -14 + Math.random() * 28,
-    duration: 3000 + Math.random() * 1000,
+    x: slot.x + (Math.random() * 6 - 3),
+    y: slot.y + (Math.random() * 7 - 3.5),
+    size: 0.95 + Math.random() * 0.55,
+    rotate: -8 + Math.random() * 16,
+    duration: 3000 + Math.random() * 500,
   };
 }
 
@@ -69,12 +77,15 @@ export default function Home() {
   const [stage, setStage] = useState<Stage>("ready");
   const [count, setCount] = useState(COUNTDOWN_FROM);
   const [flash, setFlash] = useState(false);
+  const [phraseMode, setPhraseMode] = useState<"video" | "after">("video");
   const [videoPhrases, setVideoPhrases] = useState(FALLBACK_PHRASES);
   const [afterPhrases, setAfterPhrases] = useState(FALLBACK_AFTER_PHRASES);
   const [flyingPhrases, setFlyingPhrases] = useState<FlyingPhrase[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const lockFullscreenRef = useRef(false);
+  const phraseSlotRef = useRef(0);
+  const redSwitchDoneRef = useRef(false);
 
   const playTone = (frequency: number, duration = 0.16, volume = 0.18) => {
     const context = audioRef.current;
@@ -163,6 +174,8 @@ export default function Home() {
 
     lockFullscreenRef.current = true;
     requestFullscreen();
+    setPhraseMode("video");
+    redSwitchDoneRef.current = false;
 
     const resumeVideo = () => {
       if (!video.ended) {
@@ -189,33 +202,56 @@ export default function Home() {
   }, [stage]);
 
   useEffect(() => {
-    if (stage !== "playing" && stage !== "ended") {
+    if (stage !== "playing") {
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    const handleTimeUpdate = () => {
+      if (
+        !redSwitchDoneRef.current &&
+        video.currentTime >= RED_PHRASES_AT_SECONDS
+      ) {
+        redSwitchDoneRef.current = true;
+        setPhraseMode("after");
+        setFlyingPhrases([]);
+        setFlash(true);
+        window.setTimeout(() => setFlash(false), 720);
+      }
+    };
+
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    return () => video.removeEventListener("timeupdate", handleTimeUpdate);
+  }, [stage]);
+
+  useEffect(() => {
+    if (stage !== "playing") {
       setFlyingPhrases([]);
       return;
     }
 
-    const activePhrases = stage === "playing" ? videoPhrases : afterPhrases;
+    const activePhrases = phraseMode === "video" ? videoPhrases : afterPhrases;
 
     const spawn = () => {
-      const batchSize = 2 + Math.floor(Math.random() * 3);
-      const batch = Array.from({ length: batchSize }, () =>
-        makePhrase(pick(activePhrases)),
-      );
-      setFlyingPhrases((current) => [...current.slice(-18), ...batch]);
+      const item = makePhrase(pick(activePhrases), phraseSlotRef.current);
+      phraseSlotRef.current += 1;
+      setFlyingPhrases((current) => [...current.slice(-5), item]);
 
-      for (const item of batch) {
-        window.setTimeout(() => {
-          setFlyingPhrases((current) =>
-            current.filter((phrase) => phrase.id !== item.id),
-          );
-        }, item.duration);
-      }
+      window.setTimeout(() => {
+        setFlyingPhrases((current) =>
+          current.filter((phrase) => phrase.id !== item.id),
+        );
+      }, item.duration);
     };
 
     spawn();
-    const interval = window.setInterval(spawn, 900);
+    const interval = window.setInterval(spawn, 1450);
     return () => window.clearInterval(interval);
-  }, [afterPhrases, stage, videoPhrases]);
+  }, [afterPhrases, phraseMode, stage, videoPhrases]);
 
   const startCountdown = () => {
     if (!audioRef.current) {
@@ -234,6 +270,10 @@ export default function Home() {
       void video.play().catch(() => {});
     }
 
+    setPhraseMode("video");
+    setFlyingPhrases([]);
+    phraseSlotRef.current = 0;
+    redSwitchDoneRef.current = false;
     setCount(COUNTDOWN_FROM);
     setStage("counting");
   };
@@ -241,7 +281,7 @@ export default function Home() {
   const isVideoVisible = stage === "playing" || stage === "ended";
 
   return (
-    <main className={`landing landing--${stage}`}>
+    <main className={`landing landing--${stage} landing--phrases-${phraseMode}`}>
       <div className={`flash${flash ? " flash--active" : ""}`} />
       <div className="phrase-layer" aria-hidden="true">
         {flyingPhrases.map((phrase) => (

@@ -190,7 +190,7 @@ video {
   text-wrap: balance;
   transform: translate(-50%, -50%) rotate(var(--rotate)) scale(0.72);
   opacity: 0;
-  filter: blur(10px);
+  filter: blur(6px);
   text-shadow:
     0 0 6px var(--phrase-glow-core, #ff0000),
     0 0 16px var(--phrase-glow-core, #ff0000),
@@ -199,14 +199,14 @@ video {
   animation: phrase-float var(--duration) ease-in-out forwards;
 }
 
-.landing--playing .flying-phrase {
+.landing--phrases-video .flying-phrase {
   --phrase-color: var(--green);
   --phrase-glow-core: #00ff66;
   --phrase-glow-mid: rgba(0, 255, 102, 0.95);
   --phrase-glow-soft: rgba(0, 255, 102, 0.72);
 }
 
-.landing--ended .flying-phrase {
+.landing--phrases-after .flying-phrase {
   --phrase-color: var(--red);
   --phrase-glow-core: #ff0000;
   --phrase-glow-mid: rgba(255, 0, 0, 0.95);
@@ -236,7 +236,7 @@ video {
 @keyframes phrase-float {
   0% {
     opacity: 0;
-    filter: blur(10px);
+    filter: blur(6px);
     transform: translate(-50%, -50%) rotate(var(--rotate)) scale(0.72);
   }
 
@@ -253,8 +253,8 @@ video {
 
   100% {
     opacity: 0;
-    filter: blur(8px);
-    transform: translate(calc(-50% + 44px), calc(-50% - 58px)) rotate(var(--rotate)) scale(1.08);
+    filter: blur(5px);
+    transform: translate(calc(-50% + 28px), calc(-50% - 34px)) rotate(var(--rotate)) scale(1.04);
   }
 }
 
