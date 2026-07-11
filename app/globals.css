@@ -109,9 +109,16 @@ video {
 }
 
 .video-shell {
-  width: min(100%, 1120px);
+  width: min(78vw, 430px);
   display: grid;
   gap: 18px;
+  place-items: center;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #000000;
+  box-shadow: 0 34px 110px rgba(0, 0, 0, 0.52);
 }
 
 .video-shell--hidden {
@@ -124,15 +131,16 @@ video {
 }
 
 .locked-video {
-  width: 100%;
+  width: 177.78%;
   aspect-ratio: 16 / 9;
   display: block;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
+  border: 0;
+  border-radius: 0;
   background: #000000;
-  box-shadow: 0 34px 110px rgba(0, 0, 0, 0.52);
-  object-fit: contain;
+  object-fit: cover;
   pointer-events: none;
+  transform: rotate(90deg);
+  transform-origin: center;
 }
 
 .final-note {
