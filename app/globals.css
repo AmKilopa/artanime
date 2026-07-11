@@ -233,6 +233,76 @@ video {
   text-align: center;
 }
 
+.admin-panel {
+  position: fixed;
+  left: 16px;
+  top: 16px;
+  z-index: 12;
+  width: min(calc(100vw - 32px), 360px);
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.88);
+  color: #ffffff;
+  box-shadow:
+    0 0 0 1px #000000,
+    0 0 24px rgba(255, 255, 255, 0.16),
+    0 0 40px rgba(255, 29, 37, 0.22);
+  backdrop-filter: blur(12px);
+}
+
+.admin-panel__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.admin-panel__top span {
+  color: var(--red);
+  text-shadow:
+    0 0 8px #ff0000,
+    0 0 18px rgba(255, 0, 0, 0.72);
+}
+
+.admin-panel__top strong {
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-panel__range {
+  width: 100%;
+  accent-color: var(--red);
+}
+
+.admin-panel__buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.admin-panel__buttons button {
+  min-height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 4px;
+  background: #ffffff;
+  color: #000000;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.admin-panel__buttons button:hover {
+  background: var(--red);
+  color: #ffffff;
+  box-shadow: 0 0 18px rgba(255, 0, 0, 0.58);
+}
+
 @keyframes phrase-float {
   0% {
     opacity: 0;
@@ -287,5 +357,11 @@ video {
 
   .flying-phrase {
     max-width: 42vw;
+  }
+
+  .admin-panel {
+    left: 10px;
+    top: 10px;
+    width: min(calc(100vw - 20px), 340px);
   }
 }

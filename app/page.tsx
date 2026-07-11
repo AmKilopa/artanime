@@ -59,6 +59,17 @@ function pick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "00:00";
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const wholeSeconds = Math.floor(seconds % 60);
+
+  return `${String(minutes).padStart(2, "0")}:${String(wholeSeconds).padStart(2, "0")}`;
+}
+
 function makePhrase(text: string, slotIndex: number): FlyingPhrase {
   const slot = PHRASE_SLOTS[slotIndex % PHRASE_SLOTS.length];
 
@@ -81,6 +92,9 @@ export default function Home() {
   const [videoPhrases, setVideoPhrases] = useState(FALLBACK_PHRASES);
   const [afterPhrases, setAfterPhrases] = useState(FALLBACK_AFTER_PHRASES);
   const [flyingPhrases, setFlyingPhrases] = useState<FlyingPhrase[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [videoTime, setVideoTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const lockFullscreenRef = useRef(false);
@@ -110,6 +124,55 @@ export default function Home() {
       void root.requestFullscreen().catch(() => {});
     }
   };
+
+  const triggerAfterPhrases = () => {
+    if (redSwitchDoneRef.current) {
+      return;
+    }
+
+    redSwitchDoneRef.current = true;
+    setPhraseMode("after");
+    setFlyingPhrases([]);
+    setFlash(true);
+    window.setTimeout(() => setFlash(false), 720);
+  };
+
+  const syncPhraseModeForTime = (seconds: number) => {
+    if (seconds >= RED_PHRASES_AT_SECONDS) {
+      triggerAfterPhrases();
+      return;
+    }
+
+    if (redSwitchDoneRef.current || phraseMode !== "video") {
+      redSwitchDoneRef.current = false;
+      setPhraseMode("video");
+      setFlyingPhrases([]);
+    }
+  };
+
+  const seekVideo = (seconds: number) => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    const duration = Number.isFinite(video.duration)
+      ? video.duration
+      : videoDuration;
+    const nextTime = Math.max(
+      0,
+      duration > 0 ? Math.min(seconds, duration) : seconds,
+    );
+
+    video.currentTime = nextTime;
+    setVideoTime(nextTime);
+    syncPhraseModeForTime(nextTime);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setIsAdmin(params.get("admin") === "1" || window.location.hash === "#admin");
+  }, []);
 
   useEffect(() => {
     fetch(VIDEO_PHRASES_SRC, { cache: "no-store" })
@@ -212,21 +275,55 @@ export default function Home() {
     }
 
     const handleTimeUpdate = () => {
-      if (
-        !redSwitchDoneRef.current &&
-        video.currentTime >= RED_PHRASES_AT_SECONDS
-      ) {
-        redSwitchDoneRef.current = true;
-        setPhraseMode("after");
-        setFlyingPhrases([]);
-        setFlash(true);
-        window.setTimeout(() => setFlash(false), 720);
+      setVideoTime(video.currentTime);
+      if (Number.isFinite(video.duration)) {
+        setVideoDuration(video.duration);
+      }
+      syncPhraseModeForTime(video.currentTime);
+    };
+
+    const handleDurationChange = () => {
+      if (Number.isFinite(video.duration)) {
+        setVideoDuration(video.duration);
       }
     };
 
     video.addEventListener("timeupdate", handleTimeUpdate);
-    return () => video.removeEventListener("timeupdate", handleTimeUpdate);
-  }, [stage]);
+    video.addEventListener("durationchange", handleDurationChange);
+    video.addEventListener("loadedmetadata", handleDurationChange);
+    return () => {
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("durationchange", handleDurationChange);
+      video.removeEventListener("loadedmetadata", handleDurationChange);
+    };
+  }, [phraseMode, stage, videoDuration]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowRight" || stage === "ready") {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)
+      ) {
+        return;
+      }
+
+      const video = videoRef.current;
+      if (!video) {
+        return;
+      }
+
+      event.preventDefault();
+      seekVideo(video.currentTime - 5);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [stage, videoDuration]);
 
   useEffect(() => {
     if (stage !== "playing") {
@@ -352,6 +449,40 @@ export default function Home() {
           {stage === "ended" && <p className="final-note">Video ended</p>}
         </div>
       </section>
+
+      {isAdmin && (
+        <aside className="admin-panel" aria-label="Admin video controls">
+          <div className="admin-panel__top">
+            <span>ADMIN</span>
+            <strong>
+              {formatTime(videoTime)} / {formatTime(videoDuration)}
+            </strong>
+          </div>
+          <input
+            className="admin-panel__range"
+            type="range"
+            min="0"
+            max={videoDuration || 240}
+            step="0.1"
+            value={Math.min(videoTime, videoDuration || videoTime || 0)}
+            onChange={(event) => seekVideo(Number(event.currentTarget.value))}
+          />
+          <div className="admin-panel__buttons">
+            <button type="button" onClick={() => seekVideo(videoTime - 5)}>
+              -5s
+            </button>
+            <button type="button" onClick={() => seekVideo(190)}>
+              03:10
+            </button>
+            <button type="button" onClick={() => seekVideo(195)}>
+              03:15
+            </button>
+            <button type="button" onClick={() => seekVideo(videoTime + 5)}>
+              +5s
+            </button>
+          </div>
+        </aside>
+      )}
     </main>
   );
 }
