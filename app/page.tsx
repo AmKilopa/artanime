@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from "react";
 const COUNTDOWN_FROM = 5;
 const VIDEO_SRC =
   "https://raw.githubusercontent.com/AmKilopa/artanime/main/public/videos/artanime.mp4";
-const VIDEO_PHRASES_SRC = "/phrases-video.txt";
-const AFTER_PHRASES_SRC = "/phrases-after.txt";
+const VIDEO_PHRASES_SRC =
+  "https://raw.githubusercontent.com/AmKilopa/artanime/main/public/phrases-video.txt";
+const AFTER_PHRASES_SRC =
+  "https://raw.githubusercontent.com/AmKilopa/artanime/main/public/phrases-after.txt";
 const RED_PHRASES_AT_SECONDS = 195;
 const PHRASE_SLOTS = [
   { x: 12, y: 12 },
