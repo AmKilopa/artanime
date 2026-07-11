@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 const COUNTDOWN_FROM = 5;
 const VIDEO_SRC =
   "https://raw.githubusercontent.com/AmKilopa/artanime/main/public/videos/artanime.mp4";
-const PHRASES_SRC = "/phrases.txt";
+const VIDEO_PHRASES_SRC = "/phrases-video.txt";
+const AFTER_PHRASES_SRC = "/phrases-after.txt";
 
 type Stage = "ready" | "counting" | "playing" | "ended";
 type FlyingPhrase = {
@@ -28,6 +29,20 @@ const FALLBACK_PHRASES = [
   "ЕЩЕ НЕМНОГО",
   "НЕ МОРГАЙ",
 ];
+
+const FALLBACK_AFTER_PHRASES = [
+  "ВИДЕО ЗАКОНЧИЛОСЬ",
+  "ТЫ ДОСМОТРЕЛ",
+  "ЭТО ОСТАЛОСЬ С ТОБОЙ",
+  "ТЕПЕРЬ ТИШЕ",
+];
+
+function parsePhrases(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
 function pick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
@@ -54,7 +69,8 @@ export default function Home() {
   const [stage, setStage] = useState<Stage>("ready");
   const [count, setCount] = useState(COUNTDOWN_FROM);
   const [flash, setFlash] = useState(false);
-  const [phrases, setPhrases] = useState(FALLBACK_PHRASES);
+  const [videoPhrases, setVideoPhrases] = useState(FALLBACK_PHRASES);
+  const [afterPhrases, setAfterPhrases] = useState(FALLBACK_AFTER_PHRASES);
   const [flyingPhrases, setFlyingPhrases] = useState<FlyingPhrase[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<AudioContext | null>(null);
@@ -85,14 +101,19 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetch(PHRASES_SRC, { cache: "no-store" })
+    fetch(VIDEO_PHRASES_SRC, { cache: "no-store" })
       .then((response) => (response.ok ? response.text() : ""))
       .then((text) => {
-        const next = text
-          .split(/\r?\n/)
-          .map((line) => line.trim())
-          .filter(Boolean);
-        if (next.length > 0) setPhrases(next);
+        const next = parsePhrases(text);
+        if (next.length > 0) setVideoPhrases(next);
+      })
+      .catch(() => {});
+
+    fetch(AFTER_PHRASES_SRC, { cache: "no-store" })
+      .then((response) => (response.ok ? response.text() : ""))
+      .then((text) => {
+        const next = parsePhrases(text);
+        if (next.length > 0) setAfterPhrases(next);
       })
       .catch(() => {});
   }, []);
@@ -168,15 +189,17 @@ export default function Home() {
   }, [stage]);
 
   useEffect(() => {
-    if (stage !== "playing") {
+    if (stage !== "playing" && stage !== "ended") {
       setFlyingPhrases([]);
       return;
     }
 
+    const activePhrases = stage === "playing" ? videoPhrases : afterPhrases;
+
     const spawn = () => {
       const batchSize = 2 + Math.floor(Math.random() * 3);
       const batch = Array.from({ length: batchSize }, () =>
-        makePhrase(pick(phrases)),
+        makePhrase(pick(activePhrases)),
       );
       setFlyingPhrases((current) => [...current.slice(-18), ...batch]);
 
@@ -192,7 +215,7 @@ export default function Home() {
     spawn();
     const interval = window.setInterval(spawn, 900);
     return () => window.clearInterval(interval);
-  }, [phrases, stage]);
+  }, [afterPhrases, stage, videoPhrases]);
 
   const startCountdown = () => {
     if (!audioRef.current) {
