@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const COUNTDOWN_FROM = 5;
-const VIDEO_SRC =
-  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+const VIDEO_SRC = "/videos/artanime.mp4";
 
 type Stage = "ready" | "counting" | "playing" | "ended";
 
@@ -37,7 +36,7 @@ export default function Home() {
       return;
     }
 
-    const playVideo = () => {
+    const resumeVideo = () => {
       if (!video.ended) {
         void video.play();
       }
@@ -50,8 +49,8 @@ export default function Home() {
       void video.play();
     });
 
-    video.addEventListener("pause", playVideo);
-    return () => video.removeEventListener("pause", playVideo);
+    video.addEventListener("pause", resumeVideo);
+    return () => video.removeEventListener("pause", resumeVideo);
   }, [stage]);
 
   const startCountdown = () => {
@@ -64,12 +63,12 @@ export default function Home() {
       <section className="focus-area" aria-live="polite">
         {stage === "ready" && (
           <button className="start-button" type="button" onClick={startCountdown}>
-            Запустить
+            Start
           </button>
         )}
 
         {stage === "counting" && (
-          <div className="countdown" aria-label={`Видео начнется через ${count}`}>
+          <div className="countdown" aria-label={`Video starts in ${count}`}>
             {count}
           </div>
         )}
@@ -89,7 +88,7 @@ export default function Home() {
               onEnded={() => setStage("ended")}
               tabIndex={-1}
             />
-            {stage === "ended" && <p className="final-note">Видео завершено</p>}
+            {stage === "ended" && <p className="final-note">Video ended</p>}
           </div>
         )}
       </section>
