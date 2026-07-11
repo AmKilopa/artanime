@@ -144,13 +144,13 @@ export default function Home() {
     requestFullscreen();
 
     const resumeVideo = () => {
-      if (!video.ended) void video.play();
+      if (!video.ended) void video.play().catch(() => {});
     };
 
     video.currentTime = 0;
     video.muted = false;
     video.volume = 1;
-    void video.play();
+    if (video.paused) void video.play().catch(() => {});
 
     video.addEventListener("pause", resumeVideo);
     return () => {
@@ -197,7 +197,7 @@ export default function Home() {
     const video = videoRef.current;
     if (video) {
       video.muted = false;
-      video.volume = 0.08;
+      video.volume = 0;
       video.currentTime = 0;
       void video.play().catch(() => {});
     }
