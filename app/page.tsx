@@ -10,16 +10,6 @@ const VIDEO_PHRASES_SRC =
 const AFTER_PHRASES_SRC =
   "https://raw.githubusercontent.com/AmKilopa/artanime/main/public/phrases-after.txt";
 const RED_PHRASES_AT_SECONDS = 195;
-const PHRASE_SLOTS = [
-  { x: 12, y: 12 },
-  { x: 86, y: 16 },
-  { x: 18, y: 34 },
-  { x: 82, y: 38 },
-  { x: 14, y: 58 },
-  { x: 88, y: 62 },
-  { x: 22, y: 82 },
-  { x: 78, y: 84 },
-];
 
 type Stage = "ready" | "counting" | "playing" | "ended";
 type FlyingPhrase = {
@@ -61,6 +51,10 @@ function pick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+function randomBetween(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) {
     return "00:00";
@@ -72,14 +66,58 @@ function formatTime(seconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(wholeSeconds).padStart(2, "0")}`;
 }
 
-function makePhrase(text: string, slotIndex: number): FlyingPhrase {
-  const slot = PHRASE_SLOTS[slotIndex % PHRASE_SLOTS.length];
+function makePhrase(text: string, protectedRect?: DOMRect): FlyingPhrase {
+  const viewportWidth = window.innerWidth || 1;
+  const viewportHeight = window.innerHeight || 1;
+  const screenPad = Math.max(18, Math.min(viewportWidth, viewportHeight) * 0.035);
+  const safeGap = Math.max(86, Math.min(viewportWidth, viewportHeight) * 0.12);
+  const safeZones =
+    protectedRect && protectedRect.width > 0 && protectedRect.height > 0
+      ? [
+          {
+            left: screenPad,
+            right: protectedRect.left - safeGap,
+            top: screenPad,
+            bottom: viewportHeight - screenPad,
+          },
+          {
+            left: protectedRect.right + safeGap,
+            right: viewportWidth - screenPad,
+            top: screenPad,
+            bottom: viewportHeight - screenPad,
+          },
+          {
+            left: screenPad,
+            right: viewportWidth - screenPad,
+            top: screenPad,
+            bottom: protectedRect.top - safeGap,
+          },
+          {
+            left: screenPad,
+            right: viewportWidth - screenPad,
+            top: protectedRect.bottom + safeGap,
+            bottom: viewportHeight - screenPad,
+          },
+        ].filter((zone) => zone.right - zone.left > 90 && zone.bottom - zone.top > 50)
+      : [];
+
+  const zone =
+    safeZones.length > 0
+      ? pick(safeZones)
+      : {
+          left: screenPad,
+          right: viewportWidth - screenPad,
+          top: screenPad,
+          bottom: viewportHeight - screenPad,
+        };
+  const x = randomBetween(zone.left, zone.right);
+  const y = randomBetween(zone.top, zone.bottom);
 
   return {
     id: Date.now() + Math.random(),
     text,
-    x: slot.x + (Math.random() * 6 - 3),
-    y: slot.y + (Math.random() * 7 - 3.5),
+    x: (x / viewportWidth) * 100,
+    y: (y / viewportHeight) * 100,
     size: 0.95 + Math.random() * 0.55,
     rotate: -8 + Math.random() * 16,
     duration: 3000 + Math.random() * 500,
@@ -98,9 +136,9 @@ export default function Home() {
   const [videoTime, setVideoTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoShellRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const lockFullscreenRef = useRef(false);
-  const phraseSlotRef = useRef(0);
   const redSwitchDoneRef = useRef(false);
 
   const playTone = (frequency: number, duration = 0.16, volume = 0.18) => {
@@ -339,10 +377,9 @@ export default function Home() {
       const batchSize =
         phraseMode === "after" ? 2 + Math.floor(Math.random() * 2) : 1;
       const maxVisible = phraseMode === "after" ? 14 : 6;
+      const protectedRect = videoShellRef.current?.getBoundingClientRect();
       const batch = Array.from({ length: batchSize }, () => {
-        const item = makePhrase(pick(activePhrases), phraseSlotRef.current);
-        phraseSlotRef.current += 1;
-        return item;
+        return makePhrase(pick(activePhrases), protectedRect);
       });
 
       setFlyingPhrases((current) => [
@@ -385,7 +422,6 @@ export default function Home() {
 
     setPhraseMode("video");
     setFlyingPhrases([]);
-    phraseSlotRef.current = 0;
     redSwitchDoneRef.current = false;
     setCount(COUNTDOWN_FROM);
     setStage("counting");
@@ -428,6 +464,7 @@ export default function Home() {
         )}
 
         <div
+          ref={videoShellRef}
           className={`video-shell${isVideoVisible ? "" : " video-shell--hidden"}`}
           aria-hidden={!isVideoVisible}
         >
