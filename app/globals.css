@@ -109,9 +109,18 @@ video {
 }
 
 .video-shell {
-  width: min(100%, 980px);
+  width: min(100%, 1120px);
   display: grid;
   gap: 18px;
+}
+
+.video-shell--hidden {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .locked-video {
@@ -122,7 +131,7 @@ video {
   border-radius: 8px;
   background: #000000;
   box-shadow: 0 34px 110px rgba(0, 0, 0, 0.52);
-  object-fit: cover;
+  object-fit: contain;
   pointer-events: none;
 }
 

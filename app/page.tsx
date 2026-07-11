@@ -38,26 +38,32 @@ export default function Home() {
     }
 
     const resumeVideo = () => {
-      if (!video.ended) {
-        void video.play();
-      }
+      if (!video.ended) void video.play();
     };
 
     video.currentTime = 0;
     video.muted = false;
-    void video.play().catch(() => {
-      video.muted = true;
-      void video.play();
-    });
+    video.volume = 1;
+    void video.play();
 
     video.addEventListener("pause", resumeVideo);
     return () => video.removeEventListener("pause", resumeVideo);
   }, [stage]);
 
   const startCountdown = () => {
+    const video = videoRef.current;
+    if (video) {
+      video.muted = false;
+      video.volume = 0;
+      video.currentTime = 0;
+      void video.play().catch(() => {});
+    }
+
     setCount(COUNTDOWN_FROM);
     setStage("counting");
   };
+
+  const isVideoVisible = stage === "playing" || stage === "ended";
 
   return (
     <main className={`landing landing--${stage}`}>
@@ -74,24 +80,25 @@ export default function Home() {
           </div>
         )}
 
-        {(stage === "playing" || stage === "ended") && (
-          <div className="video-shell">
-            <video
-              ref={videoRef}
-              className="locked-video"
-              src={VIDEO_SRC}
-              playsInline
-              preload="auto"
-              controls={false}
-              controlsList="nodownload nofullscreen noremoteplayback"
-              disablePictureInPicture
-              onContextMenu={(event) => event.preventDefault()}
-              onEnded={() => setStage("ended")}
-              tabIndex={-1}
-            />
-            {stage === "ended" && <p className="final-note">Video ended</p>}
-          </div>
-        )}
+        <div
+          className={`video-shell${isVideoVisible ? "" : " video-shell--hidden"}`}
+          aria-hidden={!isVideoVisible}
+        >
+          <video
+            ref={videoRef}
+            className="locked-video"
+            src={VIDEO_SRC}
+            playsInline
+            preload="auto"
+            controls={false}
+            controlsList="nodownload nofullscreen noremoteplayback"
+            disablePictureInPicture
+            onContextMenu={(event) => event.preventDefault()}
+            onEnded={() => setStage("ended")}
+            tabIndex={-1}
+          />
+          {stage === "ended" && <p className="final-note">Video ended</p>}
+        </div>
       </section>
     </main>
   );
