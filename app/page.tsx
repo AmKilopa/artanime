@@ -237,22 +237,36 @@ export default function Home() {
     const activePhrases = phraseMode === "video" ? videoPhrases : afterPhrases;
 
     const spawn = () => {
-      const item = makePhrase(pick(activePhrases), phraseSlotRef.current);
-      phraseSlotRef.current += 1;
-      setFlyingPhrases((current) => [...current.slice(-5), item]);
+      const batchSize =
+        phraseMode === "after" ? 2 + Math.floor(Math.random() * 2) : 1;
+      const maxVisible = phraseMode === "after" ? 14 : 6;
+      const batch = Array.from({ length: batchSize }, () => {
+        const item = makePhrase(pick(activePhrases), phraseSlotRef.current);
+        phraseSlotRef.current += 1;
+        return item;
+      });
 
-      window.setTimeout(() => {
-        setFlyingPhrases((current) =>
-          current.filter((phrase) => phrase.id !== item.id),
-        );
-      }, item.duration);
+      setFlyingPhrases((current) => [
+        ...current.slice(-(maxVisible - batch.length)),
+        ...batch,
+      ]);
+
+      for (const item of batch) {
+        window.setTimeout(() => {
+          setFlyingPhrases((current) =>
+            current.filter((phrase) => phrase.id !== item.id),
+          );
+        }, item.duration);
+      }
     };
 
     spawn();
-    const interval = window.setInterval(spawn, 1450);
+    const interval = window.setInterval(
+      spawn,
+      phraseMode === "after" ? 620 : 1450,
+    );
     return () => window.clearInterval(interval);
   }, [afterPhrases, phraseMode, stage, videoPhrases]);
-
   const startCountdown = () => {
     if (!audioRef.current) {
       audioRef.current = new AudioContext();
